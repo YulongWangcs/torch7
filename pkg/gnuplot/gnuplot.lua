@@ -1,6 +1,92 @@
 
 require 'paths'
 
+local torchstyle = [[
+##### Modified version of the sample given in
+##### http://www.guidolin.net/blog/files/2010/03/gnuplot
+
+
+set macro
+
+#####  Color Palette by Color Scheme Designer
+#####  Palette URL: http://colorschemedesigner.com/#3K40zsOsOK-K-
+
+
+   blue_000 = "#A9BDE6" # = rgb(169,189,230)
+   blue_025 = "#7297E6" # = rgb(114,151,230)
+   blue_050 = "#1D4599" # = rgb(29,69,153)
+   blue_075 = "#2F3F60" # = rgb(47,63,96)
+   blue_100 = "#031A49" # = rgb(3,26,73)
+
+   green_000 = "#A6EBB5" # = rgb(166,235,181)
+   green_025 = "#67EB84" # = rgb(103,235,132)
+   green_050 = "#11AD34" # = rgb(17,173,52)
+   green_075 = "#2F6C3D" # = rgb(47,108,61)
+   green_100 = "#025214" # = rgb(2,82,20)
+
+   red_000 = "#F9B7B0" # = rgb(249,183,176)
+   red_025 = "#F97A6D" # = rgb(249,122,109)
+   red_050 = "#E62B17" # = rgb(230,43,23)
+   red_075 = "#8F463F" # = rgb(143,70,63)
+   red_100 = "#6D0D03" # = rgb(109,13,3)
+
+   brown_000 = "#F9E0B0" # = rgb(249,224,176)
+   brown_025 = "#F9C96D" # = rgb(249,201,109)
+   brown_050 = "#E69F17" # = rgb(230,159,23)
+   brown_075 = "#8F743F" # = rgb(143,116,63)
+   brown_100 = "#6D4903" # = rgb(109,73,3)
+
+   grid_color = "#d5e0c9"
+   text_color = "#222222"
+
+   my_font = "SVBasic Manual, 12"
+   my_export_sz = "1024,768"
+
+   my_line_width = "2"
+   my_axis_width = "1"
+   my_ps = "1"
+   my_font_size = "14"
+
+# must convert font fo svg and ps
+# set term svg  size @my_export_sz fname my_font fsize my_font_size enhanced dynamic rounded
+# set term png  size @my_export_sz large font my_font
+# set term jpeg size @my_export_sz large font my_font
+# set term wxt enhanced font my_font
+
+set style data linespoints
+set style function lines
+set pointsize my_ps
+
+set style line 1  linecolor rgbcolor blue_050  linewidth @my_line_width pt 7
+set style line 2  linecolor rgbcolor green_050 linewidth @my_line_width pt 7
+set style line 3  linecolor rgbcolor red_050   linewidth @my_line_width pt 7
+set style line 4  linecolor rgbcolor brown_050 linewidth @my_line_width pt 7
+set style line 5  linecolor rgbcolor blue_025  linewidth @my_line_width pt 5
+set style line 6  linecolor rgbcolor green_025 linewidth @my_line_width pt 5
+set style line 7  linecolor rgbcolor red_025   linewidth @my_line_width pt 5
+set style line 8  linecolor rgbcolor brown_025 linewidth @my_line_width pt 5
+set style line 9  linecolor rgbcolor blue_075  linewidth @my_line_width pt 9
+set style line 10 linecolor rgbcolor green_075 linewidth @my_line_width pt 9
+set style line 11 linecolor rgbcolor red_075   linewidth @my_line_width pt 9
+set style line 12 linecolor rgbcolor brown_075 linewidth @my_line_width pt 9
+set style line 13 linecolor rgbcolor blue_100  linewidth @my_line_width pt 13
+set style line 14 linecolor rgbcolor green_100 linewidth @my_line_width pt 13
+set style line 15 linecolor rgbcolor red_100   linewidth @my_line_width pt 13
+set style line 16 linecolor rgbcolor brown_100 linewidth @my_line_width pt 13
+set style line 17 linecolor rgbcolor "#224499" linewidth @my_line_width pt 11
+
+## plot 1,2,3,4,5,6,7,8,9
+set style increment user
+set style arrow 1 filled
+
+## used for bar chart borders
+## set style fill solid 0.5
+
+set size noratio
+set samples 300
+
+set border 31 lw @my_axis_width lc rgb text_color
+]]
 
 local _gptable = {}
 _gptable.current = nil
@@ -15,6 +101,26 @@ local function getexec()
    return _gptable.exe
 end
 
+local function findos()
+   if paths.dirp('C:\\') then
+      return 'windows'
+   else
+      local ff = io.popen('uname -a','r')
+      local s = ff:read('*all')
+      ff:close()
+      if s and s:match('Darwin') then
+         return 'mac'
+      elseif s and s:match('Linux') then
+         return 'linux'
+      elseif s and s:match('FreeBSD') then
+         return 'freebsd'
+      else
+         --error('I don\'t know your operating system')
+         return '?'
+      end
+   end
+end
+
 local function getfigure(n)
    local n = n
    if not n or n == nil then
@@ -25,25 +131,25 @@ local function getfigure(n)
       if _gptable.defaultterm == nil then
          error('Gnuplot terminal is not set')
       end
-      local cmd = getexec() .. ' -persist'
-      if _gptable.windows then 
-         cmd = cmd .. ' > nul 2>&1'
-      else 
-         cmd = cmd .. ' > /dev/null 2>&1' 
+      local silent = '> /dev/null 2>&1'
+      if paths.dirp('C:\\') then -- quick test for windows
+         silent = '> nul 2>&1'
       end
       _gptable[n].term = _gptable.defaultterm
-      _gptable[n].pipe = torch.PipeFile(cmd,'w')
+      _gptable[n].pipe = torch.PipeFile(getexec() .. ' -persist ' .. silent,'w')
    end
    _gptable.current = n
+   local home = os.getenv('HOME') or os.getenv('HOMEDIR') or '.'
+   if not paths.filep(paths.concat(home,'.gnuplot')) then
+      _gptable[n].pipe:writeString(torchstyle .. '\n\n\n')
+      _gptable[n].pipe:synchronize()
+   end
    return _gptable[n]
 end
 
 local function gnuplothasterm(term)
    if not _gptable.exe then
-      return false -- error('gnuplot exe is not found, can not chcek terminal')
-   end
-   if _gptable.windows then
-      return true -- redirections work so mysteriously under windows
+      return false--error('gnuplot exe is not found, can not chcek terminal')
    end
    local tfni = os.tmpname()
    local tfno = os.tmpname()
@@ -71,93 +177,108 @@ local function findgnuplotversion(exe)
    local ff = io.popen(exe .. '  --version','r')
    local ss = ff:read('*l')
    ff:close()
-   if ss == nil then
-      return 0
-   else
-      local v, vv = ss:match('(%d).(%d)')
-      v = tonumber(v or '0')
-      vv = tonumber(vv or '0')
-      return v * 100 + vv
-   end
+   local v,vv = ss:match('(%d).(%d)')
+   v=tonumber(v)
+   vv=tonumber(vv)
+   return v,vv
 end
 
 local function findgnuplotexe()
-   _gptable.windows = paths.dirname('c:\\') == 'c:/'
-   local s = nil
-   if _gptable.windows then
+   local o = findos()
+   local s
+   if o == 'windows' then
+      _gptable.hasrefresh = true
       if os.execute('where /q gnuplot') == 0 then
          s = 'gnuplot' -- full path may contain spaces
       end
    else
+      _gptable.hasrefresh = true
       local ff = io.popen('which gnuplot','r')
-      s = ff:read('*l')
-      if s == nil or not s:match('gnuplot') then s = nil end
+      local s=ff:read('*l')
       ff:close()
-   end   
-   local v = 0
-   if s then
-      v = findgnuplotversion(s)
    end
-   if o == 'linux' and v < 404 and paths.filep('/usr/bin/gnuplot44') then
-      s = '/usr/bin/gnuplot44'
-      v = findgnuplotversion(s)
+   do -- preserve indentation to minimize merging issues
+      if s and s:len() > 0 and s:match('gnuplot') then
+         local v,vv = findgnuplotversion(s)
+         if  v < 4 then
+            error('gnuplot version 4 is required')
+         end
+         if vv < 4 then
+            -- try to find gnuplot44
+            if o == 'linux' and paths.filep('/usr/bin/gnuplot44') then
+               local ss = '/usr/bin/gnuplot44'
+               v,vv = findgnuplotversion(ss)
+               if v == 4 and vv == 4 then
+                  return ss
+               end
+            end
+            _gptable.hasrefresh = false
+            print('Gnuplot package working with reduced functionality.')
+            print('Please install gnuplot version >= 4.4.')
+         end
+         return s
+      else
+         return nil
+      end
    end
-   if v < 400 then
-      print('Gnuplot package disabled (please install gnuplot >= 4.4)')
-      return nil;
-   end
-   _gptable.hasrefresh = true
-   if v < 404 then
-      _gptable.hasrefresh = false
-      print('Gnuplot package working with reduced functionality (need gnuplot >= 4.4).')
-   end
-   return s
 end
 
-local function getgnuplotdefaultterm()
-   if _gptable.windows then
+local function getgnuplotdefaultterm(os)
+   if os == 'windows' then
       return  'windows'
-   elseif gnuplothasterm('aqua') then
-      return  'aqua'
-   elseif gnuplothasterm('wxt') then
+   elseif os == 'linux' and gnuplothasterm('wxt') then
       return  'wxt'
-   elseif gnuplothasterm('x11') then
+   elseif os == 'linux' and gnuplothasterm('x11') then
+      return  'x11'
+   elseif os == 'freebsd' and gnuplothasterm('wxt') then
+      return  'wxt'
+   elseif os == 'freebsd' and gnuplothasterm('x11') then
+      return  'x11'
+   elseif os == 'mac' and gnuplothasterm('aqua') then
+      return  'aqua'
+   elseif os == 'mac' and gnuplothasterm('wxt') then
+      return  'wxt'
+   elseif os == 'mac' and gnuplothasterm('x11') then
       return  'x11'
    else
-      print('Can not find default gnuplot terminal. '
-            .. 'Please set it manually using gnuplot.setterm("terminal-name").')
+      print('Can not find any of the default terminals for ' .. os .. ' you can manually set terminal by gnuplot.setterm("terminal-name")')
       return nil
    end
 end
 
 local function findgnuplot()
    local exe = findgnuplotexe()
+   local os = findos()
    if not exe then
-      return nil -- error('I could not find gnuplot exe')
+      return nil--error('I could not find gnuplot exe')
    end
    _gptable.exe = exe
-   _gptable.defaultterm = getgnuplotdefaultterm()
+   _gptable.defaultterm = getgnuplotdefaultterm(os)
 end
 
 
 function gnuplot.setgnuplotexe(exe)
    local oldexe = _gptable.exe
+
    if not paths.filep(exe) then
       error(exe .. ' does not exist')
    end
-   _gptable.windows = paths.dirname('c:\\') == 'c:/'
+
    _gptable.exe = exe
-   local v = findgnuplotversion(exe)
-   if v < 400 then 
-      error('gnuplot version 4 is required') 
-   end
-   _gptable.hasrefresh = true
-   if vv < 404 then 
+   local v,vv = findgnuplotversion(exe)
+   if v < 4 then error('gnuplot version 4 is required') end
+   if vv < 4 then 
       _gptable.hasrefresh = false
-      print('Some functionality like adding title, labels, etc. will be disabled. '
-            .. 'Please install gnuplot version >= 4.4.')
+      print('Some functionality like adding title, labels, ... will be disabled, it is better to install gnuplot version 4.4')
+   else
+      _gptable.hasrefresh = true
    end
-   _gptable.defaultterm = getgnuplotdefaultterm()
+   
+   local os = findos()
+   local term = getgnuplotdefaultterm(os)
+   if term == nil then
+      print('You have manually set the gnuplot exe and I can not find default terminals, run gnuplot.setterm("terminal-name") to set term type')
+   end
 end
 
 function gnuplot.setterm(term)
@@ -180,7 +301,6 @@ local function writeToPlot(gp,str)
    pipe:writeString(str .. '\n\n\n')
    pipe:synchronize()
 end
-
 local function refreshPlot(gp)
    if gp.fname then
       writeToPlot(gp,'set output "' .. gp.fname .. '"')
@@ -190,11 +310,9 @@ local function refreshPlot(gp)
       writeToPlot(gp,'unset output')
    end
 end
-
 local function writeToCurrent(str)
    writeToPlot(getCurrentPlot(),str)
 end
-
 local function refreshCurrent()
    refreshPlot(getCurrentPlot())
 end
@@ -265,7 +383,7 @@ local function getvars(t)
       if x:dim() == 2 and x:size(2) == 2 then
          y = x:select(2,2)
          x = x:select(2,1)
-      elseif x:dim() == 2 and x:size(2) == 4 then
+      elseif x:dim() == 2 and x:size(2) == 4 and format == 'v' then
          y = torch.Tensor(x:size(1),2)
          xx= torch.Tensor(x:size(1),2)
          y:select(2,1):copy(x:select(2,2))
@@ -273,15 +391,24 @@ local function getvars(t)
          xx:select(2,1):copy(x:select(2,1))
          xx:select(2,2):copy(x:select(2,3))
          x = xx
+      elseif x:dim() == 2 and x:size(2) > 1 then
+         y = x[{ {}, {2,-1} }]
+         x = x:select(2,1)
       else
          y = x
          x = torch.range(1,y:size(1))
       end
    end
-   if x:dim() ~= y:dim() or x:nDimension() > 2 or y:nDimension() > 2 then
+   if x:dim() ~= 1 and x:dim() ~= 2 then
       error('x and y dims are wrong :  x = ' .. x:nDimension() .. 'D y = ' .. y:nDimension() .. 'D')
    end
-   --print(x:size(),y:size())
+   if y:size(1) ~= x:size(1) then
+      error('x and y dims are wrong :  x = ' .. x:nDimension() .. 'D y = ' .. y:nDimension() .. 'D')
+   end
+   -- if x:dim() ~= y:dim() or x:nDimension() > 2 or y:nDimension() > 2 then
+   --    error('x and y dims are wrong :  x = ' .. x:nDimension() .. 'D y = ' .. y:nDimension() .. 'D')
+   -- end
+   -- print(x:size(),y:size())
    return legend,x,y,format
 end
 
@@ -341,8 +468,7 @@ local function getsplotvars(t)
       for i=1,y:size(2) do y:select(2,i):fill(i) end
    end
    if x:nDimension() ~= 2 or y:nDimension() ~= 2 or z:nDimension() ~= 2 then
-      error('x and y and z are expected to be matrices x = ' .. x:nDimension() 
-            .. 'D y = ' .. y:nDimension() .. 'D z = '.. z:nDimension() .. 'D' )
+      error('x and y and z are expected to be matrices x = ' .. x:nDimension() .. 'D y = ' .. y:nDimension() .. 'D z = '.. z:nDimension() .. 'D' )
    end
    return legend,x,y,z
 end
@@ -412,6 +538,7 @@ local function gnuplot_string(legend,x,y,format)
       elseif f == '~' or f == 'csplines' then return 'smooth csplines'
       elseif f == 'acsplines' then return 'smooth acsplines'
       elseif f == 'V' or f == 'v' or f == 'vectors' then vecplot[i]=true;return 'with vectors'
+      else return 'with ' .. f
       end
       error("format string accepted: '.' or '-' or '+' or '+-' or '~' or '~ COEF'")
    end
@@ -430,15 +557,17 @@ local function gnuplot_string(legend,x,y,format)
          elseif vecplot[i] then
             --print(xi,yi)
             table.insert(dstr,string.format('%g %g %g %g\n',xi[j][1],yi[j][1],xi[j][2],yi[j][2]))
-         else
+         elseif yi:dim() == 1 then
             table.insert(dstr,string.format('%g %g\n',xi[j],yi[j]))
+         else
+            table.insert(dstr,string.format(string.rep('%g ',1+yi:size(2)) .. '\n',xi[j],unpack(yi[j]:clone():storage():totable())))
          end
       end
+      collectgarbage()
       table.insert(dstr,'e\n')
    end
    return hstr,table.concat(dstr)
 end
-
 local function gnu_splot_string(legend,x,y,z)
    local hstr = string.format('%s\n','set contour base')
    hstr = string.format('%s%s\n',hstr,'set cntrparam bspline\n')
@@ -552,7 +681,7 @@ function gnuplot.figprint(fname)
    if suffix == 'eps' then
       term = 'postscript eps enhanced color'
    elseif suffix == 'png' then
-      term = 'png'
+      term = 'png size "1024,768"'
    else
       error('only eps and png for figprint')
    end

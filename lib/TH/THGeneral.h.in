@@ -73,4 +73,14 @@ TH_API void THFree(void *ptr);
 # define log1p(x) THLog1p(x)
 #endif
 
+#ifdef _OPENMP
+# ifdef _MSC_VER
+#  define for_omp __pragma(omp parallel for) for
+# else
+#  define for_omp _Pragma("omp parallel for") for
+# endif
+#else
+# define for_omp for
+#endif
+
 #endif

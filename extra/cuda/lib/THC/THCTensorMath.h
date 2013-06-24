@@ -24,7 +24,6 @@ THC_API float THCudaTensor_dot(THCudaTensor *self, THCudaTensor *src);
 THC_API float THCudaTensor_minall(THCudaTensor *self);
 THC_API float THCudaTensor_maxall(THCudaTensor *self);
 THC_API float THCudaTensor_sumall(THCudaTensor *self);
-
 THC_API void THCudaTensor_min(THCudaTensor *self, THCudaTensor *src, long dim);
 THC_API void THCudaTensor_max(THCudaTensor *self, THCudaTensor *src, long dim);
 THC_API void THCudaTensor_sum(THCudaTensor *self, THCudaTensor *src, long dim);
@@ -67,9 +66,11 @@ THC_API void THCudaTensor_eqTensor(THCudaTensor *self_, THCudaTensor *src1, THCu
 THC_API void THCudaTensor_neTensor(THCudaTensor *self_, THCudaTensor *src1, THCudaTensor *src2);
 
 THC_API float THCudaTensor_meanall(THCudaTensor *self);
+THC_API void  THCudaTensor_mean(THCudaTensor *self, THCudaTensor *src, long dim);
 THC_API float THCudaTensor_varall(THCudaTensor *self);
 THC_API float THCudaTensor_stdall(THCudaTensor *self);
-THC_API float THCudaTensor_norm(THCudaTensor *self, float value);
+THC_API float THCudaTensor_normall(THCudaTensor *self, float value);
+THC_API void  THCudaTensor_norm(THCudaTensor* self, THCudaTensor* src, float value, long dimension);
 THC_API float THCudaTensor_dist(THCudaTensor *self, THCudaTensor *src, float value);
 
 THC_API void THCudaTensor_rand(THCudaTensor *r_, THLongStorage *size);

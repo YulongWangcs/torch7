@@ -74,7 +74,7 @@ static int torch_isatty(lua_State *L)
 
 static double real_time()
 {
-#if WIN32
+#ifdef LUA_WIN
   time_t ltime;
   time(&ltime);
   return (double)(ltime);

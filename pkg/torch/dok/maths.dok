@@ -1000,7 +1000,7 @@ a specific dimension ''d'', in **descending** order.
 ''y=torch.sum(x,2)'' performs the sum operation for each row and
 ''y=torch.sum(x,n)'' performs the sum operation over the dimension n.
 
-====  [res] torch.var([res,] x [,flag] [,dim]) ====
+====  [res] torch.var([res,] x [,dim] [,flag]) ====
 {{anchor:torch.var}}
 
 ''y=torch.var(x)'' returns the variance of the elements of x.
@@ -1020,6 +1020,8 @@ a specific dimension ''d'', in **descending** order.
 ''y=torch.norm(x)'' returns the 2-norm of the tensor x. 
 
 ''y=torch.norm(x,p)'' returns the p-norm of the tensor x. 
+
+''y=torch.norm(x,p,dim)'' returns the p-norms of the tensor x computed over the dimension dim.
 
 ====  torch.dist(x,y)        ====
 {{anchor:torch.dist}}

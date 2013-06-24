@@ -27,7 +27,7 @@ typedef struct _Timer
 
 static double torch_Timer_realtime()
 {
-#if WIN32
+#ifdef WIN32
   time_t ltime;
   time(&ltime);
   return (double)(ltime);
@@ -40,7 +40,7 @@ static double torch_Timer_realtime()
 
 static double torch_Timer_usertime()
 {
-#if WIN32
+#ifdef WIN32
   return torch_Timer_realtime();
 #else
   struct rusage current;
@@ -51,7 +51,7 @@ static double torch_Timer_usertime()
 
 static double torch_Timer_systime()
 {
-#if WIN32
+#ifdef WIN32
   return 0;
 #else
   struct rusage current;
