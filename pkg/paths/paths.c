@@ -745,6 +745,43 @@ static int path_tmpname(lua_State *L)
   }
 }
 
+static int pushresult (lua_State *L, int i, const char *filename) {
+  int en = errno;
+  if (i) {
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+  else {
+    lua_pushnil(L);
+    lua_pushfstring(L, "%s: %s", filename, strerror(en));
+    lua_pushinteger(L, en);
+    return 3;
+  }
+}
+
+static int path_mkdir(lua_State *L)
+{
+  const char *s = luaL_checkstring(L, 1);
+#ifdef LUA_WIN
+  int status = _mkdir(s);
+#else
+  int status = mkdir(s);
+#endif
+  return pushresult(L, status == 0, s);
+}
+
+static int path_rmdir(lua_State *L)
+{
+  const char *s = luaL_checkstring(L, 1);
+#ifdef LUA_WIN
+  int status = _rmdir(s);
+#else
+  int status = rmdir(s);
+#endif
+  return pushresult(L, status == 0, s);
+}
+
+
 
 /* ------------------------------------------------------ */
 /* require (with global flag) */
@@ -887,6 +924,8 @@ static const struct luaL_Reg paths__ [] = {
   {"execdir", lua_execdir},
   {"dir", lua_dir},
   {"tmpname", path_tmpname},
+  {"mkdir", path_mkdir},
+  {"rmdir", path_rmdir},
   {"require", path_require},
   {NULL, NULL}
 };
