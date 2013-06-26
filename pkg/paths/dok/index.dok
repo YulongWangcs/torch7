@@ -126,10 +126,10 @@ Returns ''true'' on success.
 Delete an empty directory.
 Returns ''true'' on success.
 
-==== paths.rmdir_recursive(s, y) ====
-{{anchor:paths.rmdir}}
+==== paths.rmall(s, y) ====
+{{anchor:paths.rmall}}
 
-Recursively delete directory ''s'' and its content.
+Recursively delete file or directory ''s'' and its contents.
 Argument ''y'' must be string ''"yes"''
 Returns ''true'' on success.
 

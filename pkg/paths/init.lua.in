@@ -88,26 +88,23 @@ function dofile(f, depth)
    return g.dofile(f)
 end
 
-function rmdir_recursive(d, more)
+function rmall(d, more)
    if more ~= 'yes' then
       return nil, "missing second argument ('yes')"
-   elseif not dirp(d) then
-      return nil, "not a directory", d
-   else
+   elseif filep(d) then
+      return os.remove(d)
+   elseif dirp(d) then
       for f in files(d) do
          if f ~= '.' and f ~= '..' then
-            local r0,r1,r2
             local ff = concat(d, f)
-            if filep(ff) then
-               r0,r1,ff = os.remove(ff)
-            elseif dirp(ff) then
-               r0,r1,ff = rmdir_recursive(ff, more)
-            end
+            local r0,r1,r2 = rmall(ff, more)
             if not r0 then
                return r0,r1,ff
             end
         end
      end
      return rmdir(d)
+   else
+     return nil, "not a file or directory", d
    end
 end
