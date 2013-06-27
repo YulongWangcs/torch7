@@ -109,9 +109,9 @@ sbsetpush(lua_State *L,  SB *sb, const char *s)
 
 
 static int 
-filep(lua_State *L)
+filep(lua_State *L, int i)
 {
-  const char *s = luaL_checkstring(L, 1);
+  const char *s = luaL_checkstring(L, i);
 #ifdef LUA_WIN
   struct _stat buf;
   if (_stat(s,&buf) < 0)
@@ -130,24 +130,22 @@ filep(lua_State *L)
 
 
 static int 
-dirp(lua_State *L)
+concat_fname(lua_State *L, const char *fname);
+
+static int 
+dirp(lua_State *L, int i)
 {
-  const char *s = luaL_checkstring(L, 1);
+  const char *s = luaL_checkstring(L, i);
 #ifdef LUA_WIN
+  char buffer[8];
   struct _stat buf;
   const char *last;
   if ((s[0]=='/' || s[0]=='\\') && 
       (s[1]=='/' || s[1]=='\\') && !s[2]) 
     return 1;
-  last = s + strlen(s);
-  if (*last=='/' || *last=='\\' || *last==':')
-    {
-      lua_settop(L, 1);
-      lua_pushliteral(L, ".");
-      lua_concat(L, 2);
-      s = lua_tostring(L, -1);
-    }
-  if (_stat(s,&buf)==0)
+  if (s[0] && isalpha((unsigned char)(s[0])) && s[1] == ':' && s[2] == 0)
+    { buffer[0]=s[0]; buffer[1]=':'; buffer[2]='.'; buffer[3]=0; s = buffer; }
+  if (_stat(s, &buf) >= 0)
     if (buf.st_mode & S_IFDIR)
       return 1;
 #else
@@ -163,7 +161,7 @@ dirp(lua_State *L)
 static int
 lua_filep(lua_State *L)
 {
-  lua_pushboolean(L, filep(L));
+  lua_pushboolean(L, filep(L, 1));
   return 1;
 }
 
@@ -171,7 +169,7 @@ lua_filep(lua_State *L)
 static int
 lua_dirp(lua_State *L)
 {
-  lua_pushboolean(L, dirp(L));
+  lua_pushboolean(L, dirp(L, 1));
   return 1;
 }
 
@@ -604,7 +602,7 @@ lua_dir(lua_State *L)
           lua_rawseti(L, -2, ++k);
         }
     } 
-  else if (dirp(L)) {
+  else if (dirp(L, 1)) {
     lua_pushliteral(L, "..");
     lua_rawseti(L, -2, ++k);
   } else {
@@ -724,7 +722,7 @@ static void add_tmpname(lua_State *L, const char *tmp)
 }
 
 
-static int path_tmpname(lua_State *L)
+static int lua_tmpname(lua_State *L)
 {
 #ifdef LUA_WIN
   char *tmp = _tempnam("c:/temp", "luatmp");
@@ -759,18 +757,25 @@ static int pushresult (lua_State *L, int i, const char *filename) {
   }
 }
 
-static int path_mkdir(lua_State *L)
+static int lua_mkdir(lua_State *L)
 {
-  const char *s = luaL_checkstring(L, 1);
+   int status = 0;
+   const char *s = luaL_checkstring(L, 1);
+   lua_pushcfunction(L, lua_mkdir);
+   lua_pushcfunction(L, lua_dirname);
+   lua_pushvalue(L, 1);
+   lua_call(L, 1, 1);
+   if (! dirp(L, -1))
+      lua_call(L, 1, 3);
 #ifdef LUA_WIN
-  int status = _mkdir(s);
+   status = _mkdir(s);
 #else
-  int status = mkdir(s);
+   status = mkdir(s);
 #endif
-  return pushresult(L, status == 0, s);
+   return pushresult(L, status == 0, s);
 }
 
-static int path_rmdir(lua_State *L)
+static int lua_rmdir(lua_State *L)
 {
   const char *s = luaL_checkstring(L, 1);
 #ifdef LUA_WIN
@@ -923,9 +928,9 @@ static const struct luaL_Reg paths__ [] = {
   {"concat", lua_concatfname},
   {"execdir", lua_execdir},
   {"dir", lua_dir},
-  {"tmpname", path_tmpname},
-  {"mkdir", path_mkdir},
-  {"rmdir", path_rmdir},
+  {"tmpname", lua_tmpname},
+  {"mkdir", lua_mkdir},
+  {"rmdir", lua_rmdir},
   {"require", path_require},
   {NULL, NULL}
 };
